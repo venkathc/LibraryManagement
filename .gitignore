@@ -15,7 +15,6 @@ data/*.db-*
 backups/*
 uploads/book_covers/*
 .streamlit/secrets.toml
-.streamlit/config.toml
 .vscode/
 .DS_Store
 android/.gradle/
