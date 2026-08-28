@@ -24,6 +24,7 @@ The sign-in username field lists existing accounts. The sidebar provides **Switc
 ## Dashboard and Images
 
 - The dashboard displays catalogue metrics in a bordered grid, with a pale green library row and pale amber lending row.
+- The application header displays the Venkatesh Gowda library identity, address, phone numbers, and email address on every signed-in page.
 - The Book images control accepts multiple PNG, JPG, JPEG, or WEBP files in a single upload.
 - The first uploaded image is used as the book's primary cover for existing views; every uploaded image is retained with the book.
 - Editing a book displays its current images and allows additional images to be uploaded.
@@ -31,7 +32,7 @@ The sign-in username field lists existing accounts. The sidebar provides **Switc
 ## Run locally
 
 ```bash
-cd LibraryManagement
+cd LibraryManagement-web
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 source .venv/bin/activate
