@@ -1,0 +1,9 @@
+streamlit>=1.40,<2.0
+SQLAlchemy>=2.0,<3.0
+pandas>=2.0,<3.0
+plotly>=5.0,<7.0
+python-dotenv>=1.0,<2.0
+pytest>=8.0,<9.0
+openpyxl>=3.1,<4.0
+Pillow>=10.0,<12.0
+RapidFuzz>=3.0,<4.0
