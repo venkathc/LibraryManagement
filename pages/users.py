@@ -12,19 +12,20 @@ def render(session: Session) -> None:
     service = AuthService(session)
     users = service.list_users()
     st.dataframe(
-        [{"Username": user.username, "Role": user.role} for user in users],
+        [{"Username": user.username, "Display name": user.display_name or user.username, "Role": user.role} for user in users],
         hide_index=True,
     )
 
     with st.form("create_user"):
         st.subheader("Add user")
         username = st.text_input("Username", key="create_username")
+        display_name = st.text_input("Display name", key="create_display_name")
         password = st.text_input("Password", type="password", key="create_password")
         role = st.selectbox("Role", ("User", "Administrator", "Guest"), key="create_role")
         create_submitted = st.form_submit_button("Add user", type="primary")
     if create_submitted:
         try:
-            service.create_user(username, password, role)
+            service.create_user(username, display_name, password, role)
         except ValueError as error:
             st.error(str(error))
         else:
@@ -37,6 +38,7 @@ def render(session: Session) -> None:
     with st.form("edit_user"):
         st.subheader("Edit user")
         new_username = st.text_input("Username", value=selected_user.username, disabled=selected_user.username == "admin")
+        display_name = st.text_input("Display name", value=selected_user.display_name or selected_user.username)
         role = st.selectbox(
             "Role",
             ("User", "Administrator", "Guest"),
@@ -46,7 +48,7 @@ def render(session: Session) -> None:
         edit_submitted = st.form_submit_button("Save user changes", type="primary")
     if edit_submitted:
         try:
-            service.update_user(selected_account, new_username, role)
+            service.update_user(selected_account, new_username, display_name, role)
         except ValueError as error:
             st.error(str(error))
         else:

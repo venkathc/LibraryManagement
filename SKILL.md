@@ -330,6 +330,22 @@ Create Plotly charts for:
 
 All dashboard values and charts must come from database queries and must update after CRUD operations.
 
+MODERN SAAS DASHBOARD DESIGN
+
+The dashboard must feel like a premium 2026 personal-library SaaS workspace, not a basic admin screen.
+
+- Use a clean responsive grid with deliberate spacing, balanced density, rounded cards, soft shadows, and subtle hover transitions.
+- Add a welcome hero that greets the signed-in user, displays the current date and a live library summary, and includes a book-themed graphic or relevant visual treatment.
+- Present KPI cards for total books, total investment, unique authors, unique categories, active loans, overdue loans, and books due within seven days. Each card must have a distinct semantic icon or visual marker, concise context, and accessible contrast.
+- Include analytics for books by category, books purchased by month, top authors, and investment trend. Use Plotly charts backed by real data, and retain transparent chart backgrounds so they work in both themes.
+- Include a quick-actions section. Actions must navigate to existing workflows such as Add Book, Borrowed/Lent Books, View Books, Tags and Collections, and Reports; do not display inactive decorative controls.
+- Include recent activity panels for recently added books, currently lent books, and recent returns, with helpful empty states.
+- Include smart insights derived from live records: most expensive book, favourite author, most common category, and unread books.
+- Use Poppins or Inter with clear type hierarchy. Use a professional library palette led by teal, blue-green, warm amber, and restrained alert red.
+- Support mobile and tablet layouts. Cards must reflow without overlap or clipped text. At tablet widths, account for the visible Streamlit sidebar.
+- Support Streamlit light and dark modes. Custom card foregrounds and backgrounds must remain readable in both modes; do not assume the browser colour-scheme media query matches Streamlit's manual theme setting.
+- Prefer native Streamlit elements for interactive controls and keep custom HTML/CSS limited to presentation surfaces that Streamlit cannot style natively.
+
 ==============================
 6. ADD BOOK
 ==============================

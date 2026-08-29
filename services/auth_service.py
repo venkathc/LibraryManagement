@@ -25,7 +25,7 @@ class AuthService:
     def ensure_admin(self) -> None:
         """Create the documented initial administrator only for an empty account store."""
         if self.session.scalar(select(User.id).limit(1)) is None:
-            self.session.add(User(username="admin", password_hash=self._hash_password("admin123"), is_admin=True, role="Administrator"))
+            self.session.add(User(username="admin", display_name="Administrator", password_hash=self._hash_password("admin123"), is_admin=True, role="Administrator"))
             self.session.commit()
 
     def authenticate(self, username: str, password: str) -> User | None:
@@ -43,13 +43,14 @@ class AuthService:
         """Find an account by a normalized username."""
         return self.session.scalar(select(User).where(User.username == username.strip()))
 
-    def create_user(self, username: str, password: str, role: str) -> None:
+    def create_user(self, username: str, display_name: str, password: str, role: str) -> None:
         """Create an account with the selected role."""
         normalized_username = self._validate_credentials(username, password)
+        normalized_display_name = display_name.strip() or normalized_username
         if role not in {"Administrator", "User", "Guest"}:
             raise ValueError("Select a valid role.")
         try:
-            self.session.add(User(username=normalized_username, password_hash=self._hash_password(password), is_admin=role == "Administrator", role=role))
+            self.session.add(User(username=normalized_username, display_name=normalized_display_name, password_hash=self._hash_password(password), is_admin=role == "Administrator", role=role))
             self.session.commit()
         except IntegrityError as error:
             self.session.rollback()
@@ -64,7 +65,7 @@ class AuthService:
         user.password_hash = self._hash_password(password)
         self.session.commit()
 
-    def update_user(self, username: str, new_username: str, role: str) -> None:
+    def update_user(self, username: str, new_username: str, display_name: str, role: str) -> None:
         """Update an account name and its permissions role."""
         user = self.find_user(username)
         if user is None:
@@ -81,6 +82,7 @@ class AuthService:
         if existing_user is not None and existing_user.id != user.id:
             raise ValueError("That username is already in use.")
         user.username = normalized_username
+        user.display_name = display_name.strip() or normalized_username
         user.role = role
         user.is_admin = role == "Administrator"
         self.session.commit()

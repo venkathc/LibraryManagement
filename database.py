@@ -41,6 +41,9 @@ def _apply_sqlite_migrations() -> None:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'User'"))
             connection.execute(text("UPDATE users SET role = 'Administrator' WHERE is_admin = 1"))
+    if "display_name" not in user_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE users ADD COLUMN display_name VARCHAR(120)"))
 
 
 def get_session() -> Generator[Session, None, None]:
