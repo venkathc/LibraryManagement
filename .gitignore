@@ -8,6 +8,9 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 .venv/
+build/
+dist/
+*.spec
 .env.*
 .env
 data/*.db

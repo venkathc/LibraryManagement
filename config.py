@@ -7,7 +7,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).resolve().parent
+SOURCE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(os.getenv("LIBRARY_MANAGER_DATA_DIR", SOURCE_DIR)).expanduser()
+BASE_DIR.mkdir(parents=True, exist_ok=True)
 load_dotenv(BASE_DIR / ".env")
 
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'data' / 'library.db'}")

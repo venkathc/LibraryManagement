@@ -5,11 +5,12 @@ import streamlit as st
 from sqlalchemy.orm import Session
 
 from services.catalog_service import CatalogService
+from utils.page_ui import render_page_header
 
 
 def render(session: Session) -> None:
     """Render reusable tag and collection management."""
-    st.header("Tags and Collections")
+    render_page_header("Tags and collections", "Organise the library with reusable labels and purposeful reading shelves.", "T")
     service = CatalogService(session)
     tags_tab, collections_tab = st.tabs(["Tags", "Collections"])
     with tags_tab:
@@ -26,7 +27,7 @@ def render(session: Session) -> None:
                 st.rerun()
         tags = service.list_tags()
         if tags:
-            st.dataframe(pd.DataFrame([{"Name": tag.name, "Books": len(tag.books)} for tag in tags]), hide_index=True, use_container_width=True)
+            st.dataframe(pd.DataFrame([{"Name": tag.name, "Books": len(tag.books)} for tag in tags]), hide_index=True, width="stretch")
             tag_choices = {tag.name: tag.id for tag in tags if not tag.books}
             if tag_choices:
                 selected = st.selectbox("Unused tag to delete", tag_choices, key="delete_tag")
@@ -51,7 +52,7 @@ def render(session: Session) -> None:
                 st.rerun()
         collections = service.list_collections()
         if collections:
-            st.dataframe(pd.DataFrame([{"Name": item.name, "Description": item.description or "", "Books": len(item.books)} for item in collections]), hide_index=True, use_container_width=True)
+            st.dataframe(pd.DataFrame([{"Name": item.name, "Description": item.description or "", "Books": len(item.books)} for item in collections]), hide_index=True, width="stretch")
             collection_choices = {item.name: item.id for item in collections if not item.books}
             if collection_choices:
                 selected = st.selectbox("Empty collection to delete", collection_choices, key="delete_collection")

@@ -4,11 +4,12 @@ import streamlit as st
 from sqlalchemy.orm import Session
 
 from services.auth_service import AuthService
+from utils.page_ui import render_page_header
 
 
 def render(session: Session) -> None:
     """Render user creation, password reset, and deletion controls."""
-    st.header("User management")
+    render_page_header("User management", "Manage access, roles, and account credentials for this library workspace.", "U")
     service = AuthService(session)
     users = service.list_users()
     st.dataframe(

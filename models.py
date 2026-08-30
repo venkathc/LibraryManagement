@@ -50,6 +50,8 @@ class Book(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
     )
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime)
     tags: Mapped[list["Tag"]] = relationship(secondary=book_tags, back_populates="books")
     collections: Mapped[list["Collection"]] = relationship(
         secondary=book_collections, back_populates="books"

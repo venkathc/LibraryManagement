@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from decimal import Decimal
 import re
 
@@ -82,16 +83,61 @@ class BookService:
             raise ValueError("Could not update the book.") from error
 
     def delete_book(self, book_id: int) -> None:
+        """Permanently remove a book; use move_to_trash for normal UI removal."""
         book = self.repository.get(book_id)
         if book is None:
             raise ValueError("Book not found.")
         self.repository.delete(book)
 
+    def move_to_trash(self, book_ids: list[int]) -> None:
+        """Soft-delete books so they can be restored during the retention period."""
+        books = [self.repository.get(book_id) for book_id in book_ids]
+        if any(book is None for book in books):
+            raise ValueError("One or more books were not found.")
+        for book in books:
+            assert book is not None
+            book.deleted_at = datetime.now()
+            book.archived_at = None
+        self.repository.session.commit()
+
+    def archive_books(self, book_ids: list[int]) -> None:
+        """Hide books from the active catalogue while preserving their history."""
+        books = [self.repository.get(book_id) for book_id in book_ids]
+        if any(book is None for book in books):
+            raise ValueError("One or more books were not found.")
+        for book in books:
+            assert book is not None
+            book.archived_at = datetime.now()
+            book.deleted_at = None
+        self.repository.session.commit()
+
+    def restore_books(self, book_ids: list[int]) -> None:
+        """Restore archived or trashed books to the active catalogue."""
+        for book_id in book_ids:
+            book = self.repository.get(book_id)
+            if book is None:
+                raise ValueError("One or more books were not found.")
+            book.archived_at = None
+            book.deleted_at = None
+        self.repository.session.commit()
+
+    def purge_expired_trash(self) -> int:
+        """Permanently remove trash records retained longer than 30 days."""
+        expired_books = [
+            book for book in self.repository.list(visibility="trash")
+            if book.deleted_at is not None and book.deleted_at < datetime.now() - timedelta(days=30)
+        ]
+        for book in expired_books:
+            self.repository.session.delete(book)
+        if expired_books:
+            self.repository.session.commit()
+        return len(expired_books)
+
     def get_book(self, book_id: int) -> Book | None:
         return self.repository.get(book_id)
 
-    def search_books(self, query: str | None = None) -> list[Book]:
-        return self.repository.list(query)
+    def search_books(self, query: str | None = None, visibility: str = "active") -> list[Book]:
+        return self.repository.list(query, visibility)
 
     def fuzzy_search_books(self, query: str, threshold: int = 70) -> list[SearchResult]:
         """Return ranked fuzzy matches across catalogued book metadata."""

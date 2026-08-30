@@ -8,11 +8,12 @@ from sqlalchemy.orm import Session
 
 from services.book_service import BookService
 from services.loan_service import LoanService
+from utils.page_ui import render_page_header
 
 
 def render(session: Session) -> None:
     """Render loan creation, return processing, and loan history."""
-    st.header("Borrowed/Lent Books")
+    render_page_header("Lending desk", "Record loans, monitor returns, and keep your books moving with confidence.", "L")
     service = LoanService(session)
     books = BookService(session).search_books()
     if not books:
@@ -46,7 +47,7 @@ def render(session: Session) -> None:
     overdue_count = sum(loan.status == "Overdue" for loan in loans)
     if overdue_count:
         st.warning(f"{overdue_count} loan(s) are overdue.")
-    st.dataframe(pd.DataFrame([{"Loan ID": loan.id, "Book": loan.book.book_name, "Borrower": loan.borrower_name, "Borrowed": loan.borrowed_date, "Expected return": loan.expected_return_date, "Returned": loan.actual_return_date, "Status": loan.status} for loan in loans]), hide_index=True, use_container_width=True)
+    st.dataframe(pd.DataFrame([{"Loan ID": loan.id, "Book": loan.book.book_name, "Borrower": loan.borrower_name, "Borrowed": loan.borrowed_date, "Expected return": loan.expected_return_date, "Returned": loan.actual_return_date, "Status": loan.status} for loan in loans]), hide_index=True, width="stretch")
     active_loans = {f"{loan.id}: {loan.book.book_name} - {loan.borrower_name}": loan.id for loan in loans if loan.actual_return_date is None}
     if active_loans:
         selected_loan = st.selectbox("Active loan to return", active_loans)

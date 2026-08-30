@@ -41,6 +41,16 @@ source .venv/bin/activate
 
 The default database is `data/library.db`. To use another SQLAlchemy-compatible database later, set `DATABASE_URL` in `.env`; credentials are never committed to the project.
 
+## Installable macOS app
+
+Build a standalone macOS application from the project root:
+
+```bash
+./build_macos_app.sh
+```
+
+Open `dist/Personal AI Library Manager.app` and drag it to Applications to install it. The app stores its database, uploaded covers, and backups in `~/Library/Application Support/Personal AI Library Manager`, so application updates do not overwrite your library data.
+
 ## Move to Another System
 
 Copy the complete project folder, including `data/library.db` and `uploads/book_covers`, to preserve the catalogue and uploaded images. Do not copy `.venv`; create a new virtual environment on the destination system and run the commands in [Run locally](#run-locally).

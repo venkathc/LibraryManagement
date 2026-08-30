@@ -1,6 +1,6 @@
 """Behaviour tests for Phase 1 book CRUD."""
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
 
@@ -57,6 +57,24 @@ def test_create_update_search_and_delete_book(session: Session) -> None:
     assert updated.book_name == "Clean Architecture"
 
     service.delete_book(book.id)
+    assert service.get_book(book.id) is None
+
+
+def test_book_can_be_archived_trashed_restored_and_expired(session: Session) -> None:
+    service = BookService(session)
+    book = service.create_book(book_data())
+
+    service.archive_books([book.id])
+    assert not service.search_books()
+    assert service.search_books(visibility="archived")[0].id == book.id
+
+    service.restore_books([book.id])
+    service.move_to_trash([book.id])
+    assert service.search_books(visibility="trash")[0].id == book.id
+
+    book.deleted_at = datetime.now() - timedelta(days=31)
+    session.commit()
+    assert service.purge_expired_trash() == 1
     assert service.get_book(book.id) is None
 
 

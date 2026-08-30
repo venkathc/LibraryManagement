@@ -9,11 +9,12 @@ from sqlalchemy.orm import Session
 from services.export_service import ExportService
 from services.wishlist_service import WishlistService
 from utils.constants import READING_STATUSES, WISHLIST_PRIORITIES, WISHLIST_STATUSES
+from utils.page_ui import render_page_header
 
 
 def render(session: Session) -> None:
     """Render wishlist creation, filtering, deletion, and purchase conversion."""
-    st.header("Wishlist")
+    render_page_header("Wishlist", "Keep an intentional list of the books you want to welcome into your library.", "W")
     service = WishlistService(session)
     with st.form("wishlist_add_form", clear_on_submit=True):
         left, right = st.columns(2)
@@ -46,7 +47,7 @@ def render(session: Session) -> None:
         st.info("No wishlist items match these filters.")
         return
     frame = ExportService.wishlist_frame(items)
-    st.dataframe(frame, hide_index=True, use_container_width=True)
+    st.dataframe(frame, hide_index=True, width="stretch")
     st.download_button("Download wishlist CSV", ExportService.to_csv(frame), "wishlist.csv", "text/csv")
     if ExportService.excel_available():
         st.download_button("Download wishlist Excel", ExportService.to_excel({"Wishlist": frame}), "wishlist.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

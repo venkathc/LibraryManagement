@@ -33,9 +33,13 @@ def initialise_database() -> None:
 def _apply_sqlite_migrations() -> None:
     """Apply additive SQLite schema updates that create_all cannot perform."""
     columns = {column["name"] for column in inspect(engine).get_columns("books")}
-    if "cover_image_path" not in columns:
-        with engine.begin() as connection:
+    with engine.begin() as connection:
+        if "cover_image_path" not in columns:
             connection.execute(text("ALTER TABLE books ADD COLUMN cover_image_path VARCHAR(255)"))
+        if "archived_at" not in columns:
+            connection.execute(text("ALTER TABLE books ADD COLUMN archived_at DATETIME"))
+        if "deleted_at" not in columns:
+            connection.execute(text("ALTER TABLE books ADD COLUMN deleted_at DATETIME"))
     user_columns = {column["name"] for column in inspect(engine).get_columns("users")}
     if "role" not in user_columns:
         with engine.begin() as connection:

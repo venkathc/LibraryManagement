@@ -4,12 +4,13 @@ import streamlit as st
 from sqlalchemy.orm import Session
 
 from config import APP_NAME
+from utils.page_ui import render_page_header
 
 
 def render(session: Session) -> None:
     """Render application information without requiring database access."""
     del session
-    st.header("About this app")
+    render_page_header("About this app", "A private workspace for cataloguing, organising, and enjoying your books.", "i")
     st.subheader(APP_NAME)
     st.caption("Version 1.0.0")
 

@@ -7,11 +7,12 @@ from pages.book_form import render_book_form
 from services.book_service import BookService
 from services.catalog_service import CatalogService
 from services.image_service import ImageService
+from utils.page_ui import render_page_header
 
 
 def render(session: Session) -> None:
     """Render the Phase 1 add-book workflow."""
-    st.header("Add Book")
+    render_page_header("Add book", "Build your collection with the details that make every book easy to find later.", "+")
     catalog = CatalogService(session)
     submitted_data = render_book_form(
         form_key="add_book_form", tags=catalog.list_tags(), collections=catalog.list_collections()

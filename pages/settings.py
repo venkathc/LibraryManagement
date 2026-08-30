@@ -6,12 +6,13 @@ import streamlit as st
 from sqlalchemy.orm import Session
 
 from services.backup_service import BackupService
+from utils.page_ui import render_page_header
 
 
 def render(session: Session) -> None:
     """Render local SQLite backup, download, and guarded restore controls."""
     del session
-    st.header("Settings and Backup")
+    render_page_header("Settings and backup", "Create restore points and keep a portable copy of your personal catalogue.", "C")
     try:
         service = BackupService()
     except ValueError as error:

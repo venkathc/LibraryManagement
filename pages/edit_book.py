@@ -7,11 +7,12 @@ from pages.book_form import render_book_form
 from services.book_service import BookService
 from services.catalog_service import CatalogService
 from services.image_service import ImageService
+from utils.page_ui import render_page_header
 
 
 def render(session: Session) -> None:
     """Render a select-then-save edit workflow."""
-    st.header("Edit Book")
+    render_page_header("Edit book", "Keep your reading record current, from the cover and metadata to tags and notes.", "E")
     service = BookService(session)
     books = service.search_books()
     if not books:

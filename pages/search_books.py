@@ -5,11 +5,12 @@ import streamlit as st
 from sqlalchemy.orm import Session
 
 from services.book_service import BookService
+from utils.page_ui import render_page_header
 
 
 def render(session: Session) -> None:
     """Search books with normal modes or an optional ranked fuzzy match."""
-    st.header("Search Books")
+    render_page_header("Search books", "Find titles, authors, notes, and collections with precise or flexible matching.", "S")
     service = BookService(session)
     query = st.text_input(
         "Search", placeholder="Title, author, category, publisher, ISBN, tags, or notes", key="search_query"
@@ -38,7 +39,7 @@ def render(session: Session) -> None:
                 ]
             ),
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
         )
         return
 
@@ -72,5 +73,5 @@ def render(session: Session) -> None:
             [{"ID": book.id, "Title": book.book_name, "Author": book.author, "Category": book.category or "-"} for book in books]
         ),
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
     )

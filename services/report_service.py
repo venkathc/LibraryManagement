@@ -6,6 +6,7 @@ import pandas as pd
 from sqlalchemy.orm import Session
 
 from services.book_service import BookService
+from services.loan_service import LoanService
 
 
 class ReportService:
@@ -13,21 +14,46 @@ class ReportService:
 
     def __init__(self, session: Session) -> None:
         self.book_service = BookService(session)
+        self.loan_service = LoanService(session)
 
     def books_frame(self) -> pd.DataFrame:
         books = self.book_service.search_books()
         return pd.DataFrame(
             [
                 {
+                    "ID": book.id,
                     "Book Name": book.book_name,
                     "Author": book.author,
                     "Category": book.category or "Uncategorised",
                     "Price": float(book.price),
                     "Purchase Date": book.purchase_date,
+                    "Added At": book.created_at,
                     "Rating": book.rating,
                     "Reading Status": book.reading_status,
+                    "Favourite": book.is_favourite,
+                    "Tags": ", ".join(tag.name for tag in book.tags),
+                    "Collections": ", ".join(collection.name for collection in book.collections),
                 }
                 for book in books
+            ]
+        )
+
+    def loans_frame(self) -> pd.DataFrame:
+        """Return loan history without borrower contact details."""
+        loans = self.loan_service.list_loans()
+        return pd.DataFrame(
+            [
+                {
+                    "Loan ID": loan.id,
+                    "Book ID": loan.book_id,
+                    "Book Name": loan.book.book_name,
+                    "Borrower": loan.borrower_name,
+                    "Borrowed Date": loan.borrowed_date,
+                    "Expected Return": loan.expected_return_date,
+                    "Returned Date": loan.actual_return_date,
+                    "Status": loan.status,
+                }
+                for loan in loans
             ]
         )
 

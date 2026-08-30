@@ -634,6 +634,23 @@ Display filtered results in:
 - Summary metrics
 - Appropriate Plotly charts
 
+LIBRARY INSIGHTS AND ANALYTICS DESIGN
+
+The Reports page must feel like a premium Library Insights and Analytics centre, not a basic count report. It must use the existing Streamlit application architecture and real database data. Do not introduce Android, Jetpack Compose, or Material Design dependencies into this Python project.
+
+- Start with a responsive summary dashboard of modern metric cards for total books, total investment, total authors, categories, currently lent books, returned books, overdue books, and favourite category. Each card must use a meaningful Material icon, accessible semantic colour, concise context, and native Streamlit presentation where possible.
+- Provide advanced report filters for date range, category, author, price range, tags, collections (libraries), and borrower. Apply filters consistently to every metric, chart, data table, and export. Use database-side filtering where practical and avoid exposing borrower contact details.
+- Financial analytics must show total investment, monthly and yearly spending, average book price, most expensive book, cheapest book, category spending, and a chronological spending trend. Include Plotly line, monthly bar, and category donut or pie charts with transparent backgrounds.
+- Collection growth analytics must show books added by month and year, library growth trend, author discovery trend, category expansion trend, and clear growth indicators derived only from stored timestamps.
+- Author analytics must show top authors by book count, recently discovered authors when dates are available, favourite author derived from actual favourites and ratings, author distribution, and a horizontal ranking chart.
+- Category analytics must show the largest and smallest categories, books per category, category ranking, and the fastest-growing category only when historical data supports that conclusion. Use donut or pie charts and concise ranking surfaces.
+- Lending analytics must show total loans, currently lent books, returned books, overdue books, frequent borrowers, average completed-loan duration, loan-status distribution, and a borrowing timeline when data is available. Never display borrower contact information in reports.
+- Include a Library Intelligence section with cards for largest collection category, total collection value, books added this month, most purchased author, fastest-growing category when supported, average book cost, collection growth score, and a top-ten valuable-books table. These are data-backed insights and must explain insufficient data instead of inventing conclusions.
+- Include a Personal Reading Journey section with the first recorded purchase, latest purchase, books purchased each year, collection growth timeline, author discovery timeline, and category diversification score. Present timelines through interactive Plotly charts and data-driven milestones.
+- Retain practical CSV and Excel exports for the filtered report data. Treat PDF export, printing, and native sharing as separately documented optional integrations; do not add mandatory dependencies or inactive controls for them.
+- If multiple libraries are introduced later, support individual-library, combined-library, and comparison views through the collection/library model. Do not fabricate a separate library entity until the data model supports it.
+- Use the same premium visual language as the dashboard: Poppins or Inter, teal and blue-green primary surfaces, warm amber accents, restrained alert red, balanced density, responsive cards, smooth but subtle transitions, and readable light and dark theme treatment. Prefer native Streamlit controls and keep custom CSS limited to presentation gaps.
+
 ==============================
 12. EXPORT FEATURES
 ==============================
