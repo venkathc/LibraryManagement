@@ -32,9 +32,12 @@ class Book(Base):
     __tablename__ = "books"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    library_id: Mapped[int | None] = mapped_column(ForeignKey("libraries.id"), index=True)
     book_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     author: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     category: Mapped[str | None] = mapped_column(String(120))
+    genre: Mapped[str | None] = mapped_column(String(120))
+    book_format: Mapped[str] = mapped_column(String(20), nullable=False, default="Physical")
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     purchase_date: Mapped[date | None] = mapped_column(Date)
     publisher: Mapped[str | None] = mapped_column(String(255))
@@ -60,6 +63,33 @@ class Book(Base):
         back_populates="book", cascade="all, delete-orphan", order_by="BookImage.position"
     )
     loans: Mapped[list["Loan"]] = relationship(back_populates="book", cascade="all, delete-orphan")
+    library: Mapped["Library | None"] = relationship(back_populates="books")
+
+
+class Library(Base):
+    """A separately managed book collection with its own members."""
+
+    __tablename__ = "libraries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False, unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    books: Mapped[list[Book]] = relationship(back_populates="library")
+    memberships: Mapped[list["LibraryMembership"]] = relationship(
+        back_populates="library", cascade="all, delete-orphan"
+    )
+
+
+class LibraryMembership(Base):
+    """A user's role within a specific library."""
+
+    __tablename__ = "library_memberships"
+
+    library_id: Mapped[int] = mapped_column(ForeignKey("libraries.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="Member")
+    library: Mapped[Library] = relationship(back_populates="memberships")
+    user: Mapped["User"] = relationship(back_populates="library_memberships")
 
 
 class BookImage(Base):
@@ -81,6 +111,8 @@ class Tag(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(80), nullable=False, unique=True, index=True)
+    color: Mapped[str] = mapped_column(String(7), nullable=False, default="#1C8A83")
+    description: Mapped[str | None] = mapped_column(Text)
     books: Mapped[list[Book]] = relationship(secondary=book_tags, back_populates="tags")
 
 
@@ -138,6 +170,22 @@ class Loan(Base):
         DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
     )
     book: Mapped[Book] = relationship(back_populates="loans")
+    extensions: Mapped[list["LoanExtension"]] = relationship(
+        back_populates="loan", cascade="all, delete-orphan", order_by="LoanExtension.created_at.desc()"
+    )
+
+
+class LoanExtension(Base):
+    """An audit entry for a revised loan due date."""
+
+    __tablename__ = "loan_extensions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    loan_id: Mapped[int] = mapped_column(ForeignKey("loans.id", ondelete="CASCADE"), nullable=False, index=True)
+    previous_return_date: Mapped[date | None] = mapped_column(Date)
+    extended_return_date: Mapped[date] = mapped_column(Date, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    loan: Mapped[Loan] = relationship(back_populates="extensions")
 
 
 class User(Base):
@@ -151,4 +199,8 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     role: Mapped[str] = mapped_column(String(20), nullable=False, default="User")
+    default_library_id: Mapped[int | None] = mapped_column(ForeignKey("libraries.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    library_memberships: Mapped[list[LibraryMembership]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )

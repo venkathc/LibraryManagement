@@ -48,6 +48,37 @@ def _apply_sqlite_migrations() -> None:
     if "display_name" not in user_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE users ADD COLUMN display_name VARCHAR(120)"))
+    if "default_library_id" not in user_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE users ADD COLUMN default_library_id INTEGER REFERENCES libraries(id)"))
+    book_columns = {column["name"] for column in inspect(engine).get_columns("books")}
+    if "library_id" not in book_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE books ADD COLUMN library_id INTEGER REFERENCES libraries(id)"))
+    if "genre" not in book_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE books ADD COLUMN genre VARCHAR(120)"))
+    if "book_format" not in book_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE books ADD COLUMN book_format VARCHAR(20) NOT NULL DEFAULT 'Physical'"))
+    tag_columns = {column["name"] for column in inspect(engine).get_columns("tags")}
+    if "color" not in tag_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE tags ADD COLUMN color VARCHAR(7) NOT NULL DEFAULT '#1C8A83'"))
+    if "description" not in tag_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE tags ADD COLUMN description TEXT"))
+    with engine.begin() as connection:
+        library_id = connection.execute(text("SELECT id FROM libraries ORDER BY id LIMIT 1")).scalar()
+        if library_id is None:
+            library_id = connection.execute(text("INSERT INTO libraries (name) VALUES ('Personal library') RETURNING id")).scalar_one()
+        connection.execute(text("UPDATE books SET library_id = :library_id WHERE library_id IS NULL"), {"library_id": library_id})
+        administrator_id = connection.execute(text("SELECT id FROM users WHERE is_admin = 1 ORDER BY id LIMIT 1")).scalar()
+        if administrator_id is not None:
+            connection.execute(
+                text("INSERT OR IGNORE INTO library_memberships (library_id, user_id, role) VALUES (:library_id, :user_id, 'Owner')"),
+                {"library_id": library_id, "user_id": administrator_id},
+            )
 
 
 def get_session() -> Generator[Session, None, None]:

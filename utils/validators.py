@@ -7,7 +7,7 @@ import re
 
 VALID_READING_STATUSES = {"Unread", "Reading", "Read"}
 VALID_WISHLIST_PRIORITIES = {"Low", "Medium", "High"}
-VALID_WISHLIST_STATUSES = {"Planned", "Purchased", "Cancelled"}
+VALID_WISHLIST_STATUSES = {"Planned", "Ordered", "Purchased", "Cancelled"}
 
 
 def validate_book_data(data: dict[str, object]) -> None:

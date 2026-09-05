@@ -15,7 +15,10 @@ from services.export_service import ExportService
 from services.wishlist_service import WishlistService
 from services.image_service import ImageService
 from services.loan_service import LoanService
+from services.auth_service import AuthService
+from services.library_service import LibraryService
 from services.report_service import ReportService
+from pages.reports import _report_data
 
 
 @pytest.fixture
@@ -58,6 +61,25 @@ def test_create_update_search_and_delete_book(session: Session) -> None:
 
     service.delete_book(book.id)
     assert service.get_book(book.id) is None
+
+
+def test_active_loan_can_be_extended_with_audit_history(session: Session) -> None:
+    book = BookService(session).create_book(book_data())
+    service = LoanService(session)
+    loan = service.lend_book(
+        {
+            "book_id": book.id,
+            "borrower_name": "Sam",
+            "borrowed_date": date(2026, 9, 1),
+            "expected_return_date": date(2026, 9, 8),
+        }
+    )
+
+    updated = service.extend_loan(loan.id, date(2026, 9, 15))
+
+    assert updated.expected_return_date == date(2026, 9, 15)
+    assert len(updated.extensions) == 1
+    assert updated.extensions[0].previous_return_date == date(2026, 9, 8)
 
 
 def test_book_can_be_archived_trashed_restored_and_expired(session: Session) -> None:
@@ -185,3 +207,79 @@ def test_author_report_includes_book_names(session: Session) -> None:
     report = ReportService(session).author_report()
 
     assert report.loc[0, "Book Names"] == "Clean Architecture, Clean Code"
+
+
+def test_report_frames_include_custom_filter_fields_and_empty_schemas(session: Session) -> None:
+    service = BookService(session)
+    service.create_book(book_data(publisher="Prentice Hall", language="English"))
+    reports = ReportService(session)
+
+    frame = reports.books_frame()
+
+    assert frame.loc[0, "Publisher"] == "Prentice Hall"
+    assert frame.loc[0, "Language"] == "English"
+    assert list(ReportService(session).loans_frame().columns) == [
+        "Loan ID", "Book ID", "Book Name", "Borrower", "Borrowed Date", "Expected Return", "Returned Date", "Status"
+    ]
+
+
+def test_all_purchases_uses_added_date_when_purchase_date_is_missing(session: Session) -> None:
+    reports = ReportService(session)
+    BookService(session).create_book(book_data(purchase_date=None))
+
+    title, purchases = _report_data(
+        "All purchases",
+        reports.books_frame(),
+        reports.loans_frame(),
+        ExportService.wishlist_frame([]),
+        reports.libraries_frame(),
+        reports.members_frame(),
+        reports.users_frame(),
+    )
+
+    assert title == "All purchases"
+    assert len(purchases) == 1
+    assert purchases.loc[0, "Date Source"] == "Added date"
+    assert purchases.loc[0, "Transaction Date"] is not None
+
+
+def test_books_are_scoped_to_the_selected_library(session: Session) -> None:
+    auth_service = AuthService(session)
+    auth_service.ensure_admin()
+    auth_service.create_user("asha", "Asha", "password", "User")
+    library_service = LibraryService(session)
+    personal = library_service.create_library("Personal", "admin")
+    work = library_service.create_library("Work", "admin")
+    library_service.add_member(work.id, "asha", "Member")
+    book_service = BookService(session)
+    personal_book = book_service.create_book(book_data(isbn="9780134494166"), personal.id)
+    work_book = book_service.create_book(book_data(book_name="Work Book", isbn="9780134757599"), work.id)
+
+    assert [book.id for book in book_service.search_books(library_id=personal.id)] == [personal_book.id]
+    assert [book.id for book in book_service.search_books(library_id=work.id)] == [work_book.id]
+    assert [library.name for library in library_service.list_libraries("asha")] == ["Work"]
+
+
+def test_dashboard_metrics_and_loans_are_scoped_to_the_selected_library(session: Session) -> None:
+    auth_service = AuthService(session)
+    auth_service.ensure_admin()
+    library_service = LibraryService(session)
+    personal = library_service.create_library("Personal", "admin")
+    work = library_service.create_library("Work", "admin")
+    book_service = BookService(session)
+    book_service.create_book(book_data(isbn="9780134494166", price=Decimal("100")), personal.id)
+    work_book = book_service.create_book(
+        book_data(book_name="Work Book", isbn="9780134757599", price=Decimal("900")), work.id
+    )
+    loan_service = LoanService(session)
+    loan_service.lend_book({"book_id": work_book.id, "borrower_name": "Asha", "borrowed_date": date.today(), "expected_return_date": None})
+
+    assert book_service.metrics(personal.id) == {
+        "total_books": 1,
+        "total_investment": 100.0,
+        "unique_authors": 1,
+        "unique_categories": 1,
+    }
+    assert loan_service.list_loans(personal.id) == []
+    assert loan_service.metrics(personal.id)["active"] == 0
+    assert loan_service.metrics(work.id)["active"] == 1

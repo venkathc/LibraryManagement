@@ -14,8 +14,9 @@ import streamlit as st
 
 from config import APP_NAME
 from database import SessionLocal, initialise_database
-from pages import about, add_book, catalog, dashboard, delete_book, edit_book, loans, reports, search_books, settings, users, view_books, wishlist
+from pages import about, add_book, catalog, dashboard, delete_book, edit_book, libraries, loans, reports, search_books, settings, users, view_books, wishlist
 from services.auth_service import AuthService
+from services.library_service import LibraryService
 
 st.set_page_config(page_title=APP_NAME, page_icon="books", layout="wide")
 initialise_database()
@@ -35,6 +36,7 @@ PAGES = {
     "Wishlist": ("Wishlist", wishlist, ":material/favorite:"),
     "Borrowed/Lent Books": ("Lending", loans, ":material/import_contacts:"),
     "Settings and Backup": ("Settings", settings, ":material/settings:"),
+    "Libraries": ("Libraries", libraries, ":material/local_library:"),
     "About this app": ("About", about, ":material/info:"),
 }
 
@@ -88,6 +90,7 @@ def main() -> None:
             remembered_user = auth_service.find_user(remembered_username) if remembered_username else None
             if remembered_user is not None:
                 st.session_state.authenticated_user = {"username": remembered_user.username, "display_name": remembered_user.display_name, "role": remembered_user.role}
+                st.session_state.pop("selected_library_id", None)
             elif remembered_username is not None:
                 _forget_user()
         if st.session_state.authenticated_user is None:
@@ -116,6 +119,7 @@ def main() -> None:
                     else:
                         st.session_state.authenticated_user = {"username": user.username, "display_name": user.display_name, "role": user.role}
                         st.session_state.switch_back_user = None
+                        st.session_state.pop("selected_library_id", None)
                         _remember_user(user.username)
                         st.rerun()
             return
@@ -124,17 +128,58 @@ def main() -> None:
     authenticated_user = st.session_state.authenticated_user
     if "role" not in authenticated_user:
         authenticated_user["role"] = "Administrator" if authenticated_user.get("is_admin") else "User"
+    st.sidebar.caption(f"Signed in as {authenticated_user['username']}")
+    is_global_administrator = authenticated_user["role"] == "Administrator"
+    st.session_state.is_global_administrator = is_global_administrator
+    active_library_role = None
+    with SessionLocal() as library_session:
+        library_service = LibraryService(library_session)
+        accessible_libraries = library_service.list_libraries(
+            authenticated_user["username"], is_global_administrator
+        )
+        if accessible_libraries:
+            known_library_ids = {library.id for library in accessible_libraries}
+            if st.session_state.get("selected_library_id") not in known_library_ids:
+                account = AuthService(library_session).find_user(authenticated_user["username"])
+                preferred_library_id = account.default_library_id if account else None
+                st.session_state.selected_library_id = (
+                    preferred_library_id if preferred_library_id in known_library_ids else accessible_libraries[0].id
+                )
+            selected_library = st.sidebar.selectbox(
+                "Active library",
+                accessible_libraries,
+                index=next(index for index, library in enumerate(accessible_libraries) if library.id == st.session_state.selected_library_id),
+                format_func=lambda library: library.name,
+            )
+            st.session_state.selected_library_id = selected_library.id
+            active_membership = next(
+                (
+                    membership
+                    for membership in selected_library.memberships
+                    if membership.user.username == authenticated_user["username"]
+                ),
+                None,
+            )
+            active_library_role = active_membership.role if active_membership else None
+        else:
+            st.sidebar.warning("You have not been added to a library yet.")
+    st.session_state.active_library_role = active_library_role
+    is_library_administrator = is_global_administrator or active_library_role in {"Owner", "Admin"}
     pages = dict(PAGES)
     if authenticated_user["role"] == "Guest":
         pages = {
             name: page for name, page in pages.items()
             if name in {"Dashboard", "View Books", "Search Books", "Reports", "About this app"}
         }
-    elif authenticated_user["role"] == "User":
+    elif not is_library_administrator:
         pages.pop("Delete Book")
-    else:
+        pages.pop("Libraries")
+    if is_library_administrator:
+        pages["Libraries"] = ("Libraries", libraries, ":material/local_library:")
+    if is_global_administrator:
         pages["User management"] = ("Users", users, ":material/group:")
-    st.sidebar.caption(f"Signed in as {authenticated_user['username']}")
+    if active_library_role:
+        st.sidebar.caption(f"Library role: {active_library_role}")
     switch_user_column, sign_out_column = st.sidebar.columns(2)
     if switch_user_column.button("Switch user"):
         st.session_state.switch_back_user = authenticated_user

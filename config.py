@@ -14,3 +14,5 @@ load_dotenv(BASE_DIR / ".env")
 
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'data' / 'library.db'}")
 APP_NAME = "Personal AI Library Manager"
+GMAIL_ADDRESS = os.getenv("GMAIL_ADDRESS", "").strip()
+GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "").strip()

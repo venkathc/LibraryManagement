@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 from sqlalchemy.orm import Session
 
-from models import Loan
+from models import Loan, LoanExtension
 from repositories.book_repository import BookRepository
 from repositories.loan_repository import LoanRepository
 
@@ -58,8 +58,27 @@ class LoanService:
         loan.status = "Returned"
         return self.repository.update(loan)
 
-    def list_loans(self) -> list[Loan]:
-        loans = self.repository.list()
+    def extend_loan(self, loan_id: int, expected_return_date: date) -> Loan:
+        """Revise an active loan due date and retain its extension audit trail."""
+        loan = self.repository.get(loan_id)
+        if loan is None:
+            raise ValueError("Loan not found.")
+        if loan.actual_return_date is not None:
+            raise ValueError("Returned loans cannot be extended.")
+        if expected_return_date <= (loan.expected_return_date or loan.borrowed_date):
+            raise ValueError("The extended return date must be later than the current due date.")
+        self.repository.add_extension(
+            LoanExtension(
+                loan_id=loan.id,
+                previous_return_date=loan.expected_return_date,
+                extended_return_date=expected_return_date,
+            )
+        )
+        loan.expected_return_date = expected_return_date
+        return self.repository.update(loan)
+
+    def list_loans(self, library_id: int | None = None) -> list[Loan]:
+        loans = self.repository.list(library_id)
         today = date.today()
         for loan in loans:
             if loan.actual_return_date is None and loan.expected_return_date and loan.expected_return_date < today:
@@ -69,8 +88,8 @@ class LoanService:
         self.repository.session.commit()
         return loans
 
-    def metrics(self) -> dict[str, int]:
-        loans = self.list_loans()
+    def metrics(self, library_id: int | None = None) -> dict[str, int]:
+        loans = self.list_loans(library_id)
         today = date.today()
         return {
             "active": sum(loan.actual_return_date is None for loan in loans),

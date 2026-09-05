@@ -31,8 +31,10 @@ class BookService:
     def __init__(self, session: Session) -> None:
         self.repository = BookRepository(session)
 
-    def create_book(self, data: dict[str, object]) -> Book:
+    def create_book(self, data: dict[str, object], library_id: int | None = None) -> Book:
         clean_data = self._clean_data(data)
+        if library_id is not None:
+            clean_data["library_id"] = library_id
         tag_ids = clean_data.pop("tag_ids", [])
         collection_ids = clean_data.pop("collection_ids", [])
         image_paths = clean_data.pop("image_paths", [])
@@ -136,8 +138,8 @@ class BookService:
     def get_book(self, book_id: int) -> Book | None:
         return self.repository.get(book_id)
 
-    def search_books(self, query: str | None = None, visibility: str = "active") -> list[Book]:
-        return self.repository.list(query, visibility)
+    def search_books(self, query: str | None = None, visibility: str = "active", library_id: int | None = None) -> list[Book]:
+        return self.repository.list(query, visibility, library_id)
 
     def fuzzy_search_books(self, query: str, threshold: int = 70) -> list[SearchResult]:
         """Return ranked fuzzy matches across catalogued book metadata."""
@@ -167,13 +169,13 @@ class BookService:
                 results.append(SearchResult(book=book, score=score))
         return sorted(results, key=lambda result: (-result.score, result.book.book_name.casefold()))
 
-    def metrics(self) -> dict[str, int | float]:
-        return self.repository.dashboard_metrics()
+    def metrics(self, library_id: int | None = None) -> dict[str, int | float]:
+        return self.repository.dashboard_metrics(library_id)
 
     @staticmethod
     def _clean_data(data: dict[str, object]) -> dict[str, object]:
         clean_data = dict(data)
-        for field in ("book_name", "author", "category", "publisher", "isbn", "language", "personal_review", "notes"):
+        for field in ("book_name", "author", "category", "genre", "publisher", "isbn", "language", "personal_review", "notes"):
             if isinstance(clean_data.get(field), str):
                 clean_data[field] = clean_data[field].strip() or None
         if clean_data.get("isbn"):

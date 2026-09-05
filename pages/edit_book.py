@@ -14,7 +14,7 @@ def render(session: Session) -> None:
     """Render a select-then-save edit workflow."""
     render_page_header("Edit book", "Keep your reading record current, from the cover and metadata to tags and notes.", "E")
     service = BookService(session)
-    books = service.search_books()
+    books = service.search_books(library_id=st.session_state.get("selected_library_id"))
     if not books:
         st.info("No books available to edit.")
         return

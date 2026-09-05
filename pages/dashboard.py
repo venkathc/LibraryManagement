@@ -96,10 +96,11 @@ def render(session: Session) -> None:
     """Render a data-driven overview of the personal library."""
     book_service = BookService(session)
     loan_service = LoanService(session)
-    books = book_service.search_books()
-    loans = loan_service.list_loans()
-    metrics = book_service.metrics()
-    loan_metrics = loan_service.metrics()
+    selected_library_id = st.session_state.get("selected_library_id")
+    books = book_service.search_books(library_id=selected_library_id)
+    loans = loan_service.list_loans(selected_library_id)
+    metrics = book_service.metrics(selected_library_id)
+    loan_metrics = loan_service.metrics(selected_library_id)
 
     _render_styles()
     today = datetime.now().strftime("%A, %d %B %Y")
@@ -130,44 +131,64 @@ def render(session: Session) -> None:
 
     categories = Counter(book.category or "Uncategorised" for book in books)
     authors = Counter(book.author for book in books)
-    purchases = Counter(book.purchase_date.strftime("%b %Y") for book in books if book.purchase_date)
+    borrowing = Counter(loan.borrowed_date.strftime("%b %Y") for loan in loans if loan.borrowed_date)
+    loan_health = Counter("Returned" if loan.actual_return_date else "Active" for loan in loans)
     investments: dict[str, float] = {}
     for book in books:
         if book.purchase_date:
             period = book.purchase_date.strftime("%b %Y")
             investments[period] = investments.get(period, 0) + float(book.price)
 
-    chart_left, chart_right = st.columns(2)
-    with chart_left:
+    st.html('<h3 class="dashboard-section-title">Library at a glance</h3>')
+    category_chart, activity_chart, loan_chart = st.columns(3)
+    with category_chart:
         with st.container(border=True):
             st.markdown("**Books by category**")
             category_data = pd.DataFrame(categories.items(), columns=["Category", "Books"])
             figure = px.pie(category_data, names="Category", values="Books", color_discrete_sequence=["#1c8a83", "#f0a85b", "#2d6f9e", "#79b6b0", "#d05b36", "#b18a38"])
             figure.update_layout(**CHART_LAYOUT, showlegend=True)
             st.plotly_chart(figure, width="stretch", key="category_chart")
-    with chart_right:
+    with activity_chart:
         with st.container(border=True):
-            st.markdown("**Books purchased by month**")
-            purchase_data = pd.DataFrame(purchases.items(), columns=["Month", "Books"])
-            figure = px.bar(purchase_data, x="Month", y="Books", color_discrete_sequence=["#1c8a83"])
-            figure.update_layout(**CHART_LAYOUT)
-            st.plotly_chart(figure, width="stretch", key="purchase_chart")
+            st.markdown("**Borrowing activity**")
+            if borrowing:
+                borrowing_data = pd.DataFrame(borrowing.items(), columns=["Month", "Loans"])
+                figure = px.bar(borrowing_data, x="Month", y="Loans", color_discrete_sequence=["#2d6f9e"])
+                figure.update_layout(**CHART_LAYOUT)
+                st.plotly_chart(figure, width="stretch", key="borrowing_chart")
+            else:
+                st.info("Borrowing activity will appear after a book is lent.", icon=":material/show_chart:")
+    with loan_chart:
+        with st.container(border=True):
+            st.markdown("**Loan health**")
+            if loan_health:
+                loan_data = pd.DataFrame(loan_health.items(), columns=["Status", "Loans"])
+                figure = px.bar(loan_data, x="Status", y="Loans", color_discrete_sequence=["#f0a85b"])
+                figure.update_layout(**CHART_LAYOUT)
+                st.plotly_chart(figure, width="stretch", key="loan_health_chart")
+            else:
+                st.info("Loan health will appear after lending activity.", icon=":material/leaderboard:")
 
-    chart_left, chart_right = st.columns(2)
-    with chart_left:
-        with st.container(border=True):
-            st.markdown("**Top authors**")
-            author_data = pd.DataFrame(authors.most_common(6), columns=["Author", "Books"])
-            figure = px.bar(author_data.sort_values("Books"), x="Books", y="Author", orientation="h", color_discrete_sequence=["#2d6f9e"])
-            figure.update_layout(**CHART_LAYOUT)
-            st.plotly_chart(figure, width="stretch", key="author_chart")
-    with chart_right:
-        with st.container(border=True):
-            st.markdown("**Investment trend**")
-            investment_data = pd.DataFrame(investments.items(), columns=["Month", "Investment"])
-            figure = px.line(investment_data, x="Month", y="Investment", markers=True, color_discrete_sequence=["#d18a1f"])
-            figure.update_layout(**CHART_LAYOUT)
-            st.plotly_chart(figure, width="stretch", key="investment_chart")
+    if st.toggle("Show collection insights", value=False, key="dashboard_collection_insights"):
+        st.html('<h3 class="dashboard-section-title">Collection insights</h3>')
+        chart_left, chart_right = st.columns(2)
+        with chart_left:
+            with st.container(border=True):
+                st.markdown("**Top authors**")
+                author_data = pd.DataFrame(authors.most_common(6), columns=["Author", "Books"])
+                figure = px.bar(author_data.sort_values("Books"), x="Books", y="Author", orientation="h", color_discrete_sequence=["#2d6f9e"])
+                figure.update_layout(**CHART_LAYOUT)
+                st.plotly_chart(figure, width="stretch", key="author_chart")
+        with chart_right:
+            with st.container(border=True):
+                st.markdown("**Investment trend**")
+                investment_data = pd.DataFrame(investments.items(), columns=["Month", "Investment"])
+                if investment_data.empty:
+                    st.info("Add purchase dates to see investment trends.", icon=":material/trending_up:")
+                else:
+                    figure = px.line(investment_data, x="Month", y="Investment", markers=True, color_discrete_sequence=["#d18a1f"])
+                    figure.update_layout(**CHART_LAYOUT)
+                    st.plotly_chart(figure, width="stretch", key="investment_chart")
 
     most_expensive = max(books, key=lambda book: book.price)
     unread_count = sum(book.reading_status == "Unread" for book in books)

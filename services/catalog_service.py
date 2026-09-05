@@ -21,8 +21,8 @@ class CatalogService:
     def list_collections(self) -> list[Collection]:
         return self.repository.list_collections()
 
-    def create_tag(self, name: str) -> Tag:
-        return self._create(self.repository.add_tag, name)
+    def create_tag(self, name: str, color: str = "#1C8A83", description: str | None = None) -> Tag:
+        return self._create(self.repository.add_tag, name, color, (description or "").strip() or None)
 
     def create_collection(self, name: str, description: str | None = None) -> Collection:
         clean_name = self._clean_name(name, "Collection")
@@ -48,10 +48,10 @@ class CatalogService:
             raise ValueError("Remove this collection from all books before deleting it.")
         self.repository.delete_collection(collection)
 
-    def _create(self, creator: object, name: str) -> Tag:
+    def _create(self, creator: object, name: str, *args: object) -> Tag:
         clean_name = self._clean_name(name, "Tag")
         try:
-            return creator(clean_name)  # type: ignore[operator]
+            return creator(clean_name, *args)  # type: ignore[operator]
         except IntegrityError as error:
             self.repository.session.rollback()
             raise ValueError("A tag with this name already exists.") from error

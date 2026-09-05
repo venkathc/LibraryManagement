@@ -5,14 +5,36 @@ from pathlib import Path
 import streamlit as st
 from sqlalchemy.orm import Session
 
+from services.auth_service import AuthService
 from services.backup_service import BackupService
+from services.library_service import LibraryService
 from utils.page_ui import render_page_header
 
 
 def render(session: Session) -> None:
     """Render local SQLite backup, download, and guarded restore controls."""
-    del session
     render_page_header("Settings and backup", "Create restore points and keep a portable copy of your personal catalogue.", "C")
+    authenticated_user = st.session_state.get("authenticated_user", {})
+    username = authenticated_user.get("username")
+    if username:
+        libraries = LibraryService(session).list_libraries(
+            username, authenticated_user.get("role") == "Administrator"
+        )
+        if libraries:
+            account = AuthService(session).find_user(username)
+            choices = {library.name: library.id for library in libraries}
+            default_index = next(
+                (index for index, library in enumerate(libraries) if library.id == account.default_library_id),
+                0,
+            )
+            with st.container(border=True):
+                st.subheader("Default library")
+                st.caption("This library opens automatically whenever you sign in. You can still switch libraries from the sidebar.")
+                selected_name = st.selectbox("Open this library by default", choices, index=default_index)
+                if st.button("Save default library", type="primary", icon=":material/bookmark:"):
+                    AuthService(session).set_default_library(username, choices[selected_name])
+                    st.session_state.selected_library_id = choices[selected_name]
+                    st.success(f"Default library set to {selected_name}.")
     try:
         service = BackupService()
     except ValueError as error:

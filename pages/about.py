@@ -20,6 +20,12 @@ def render(session: Session) -> None:
     )
 
     with st.container(border=True):
+        st.subheader("Developed by")
+        st.write("Venkatesh Kumar HC")
+        st.caption("AI Engineer | Telstra India Ltd")
+        st.link_button("venkus@gmail.com", "mailto:venkus@gmail.com", icon=":material/mail:")
+
+    with st.container(border=True):
         st.subheader("Your data")
         st.write(
             "Your catalogue is stored locally in the configured SQLite database. "

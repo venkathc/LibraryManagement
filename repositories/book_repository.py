@@ -23,7 +23,7 @@ class BookRepository:
     def get(self, book_id: int) -> Book | None:
         return self.session.get(Book, book_id)
 
-    def list(self, query: str | None = None, visibility: str = "active") -> list[Book]:
+    def list(self, query: str | None = None, visibility: str = "active", library_id: int | None = None) -> list[Book]:
         statement: Select[tuple[Book]] = select(Book).options(
             selectinload(Book.tags), selectinload(Book.collections)
         ).order_by(Book.created_at.desc())
@@ -33,6 +33,8 @@ class BookRepository:
             statement = statement.where(Book.archived_at.is_not(None), Book.deleted_at.is_(None))
         elif visibility == "trash":
             statement = statement.where(Book.deleted_at.is_not(None))
+        if library_id is not None:
+            statement = statement.where(Book.library_id == library_id)
         if query and (normalised_query := query.strip()):
             pattern = f"%{normalised_query}%"
             statement = statement.where(
@@ -63,13 +65,14 @@ class BookRepository:
         self.session.delete(book)
         self.session.commit()
 
-    def dashboard_metrics(self) -> dict[str, int | float]:
+    def dashboard_metrics(self, library_id: int | None = None) -> dict[str, int | float]:
         active_books = (Book.archived_at.is_(None), Book.deleted_at.is_(None))
-        total_books = self.session.scalar(select(func.count(Book.id)).where(*active_books)) or 0
-        total_investment = self.session.scalar(select(func.coalesce(func.sum(Book.price), 0)).where(*active_books)) or 0
-        unique_authors = self.session.scalar(select(func.count(func.distinct(Book.author))).where(*active_books)) or 0
+        library_scope = (Book.library_id == library_id,) if library_id is not None else ()
+        total_books = self.session.scalar(select(func.count(Book.id)).where(*active_books, *library_scope)) or 0
+        total_investment = self.session.scalar(select(func.coalesce(func.sum(Book.price), 0)).where(*active_books, *library_scope)) or 0
+        unique_authors = self.session.scalar(select(func.count(func.distinct(Book.author))).where(*active_books, *library_scope)) or 0
         unique_categories = self.session.scalar(
-            select(func.count(func.distinct(Book.category))).where(Book.category.is_not(None), *active_books)
+            select(func.count(func.distinct(Book.category))).where(Book.category.is_not(None), *active_books, *library_scope)
         ) or 0
         return {
             "total_books": total_books,

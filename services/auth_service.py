@@ -65,6 +65,14 @@ class AuthService:
         user.password_hash = self._hash_password(password)
         self.session.commit()
 
+    def set_default_library(self, username: str, library_id: int | None) -> None:
+        """Persist the library selected automatically at the next sign-in."""
+        user = self.find_user(username)
+        if user is None:
+            raise ValueError("User not found.")
+        user.default_library_id = library_id
+        self.session.commit()
+
     def update_user(self, username: str, new_username: str, display_name: str, role: str) -> None:
         """Update an account name and its permissions role."""
         user = self.find_user(username)

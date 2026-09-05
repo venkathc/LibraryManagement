@@ -4,6 +4,26 @@ Create a complete, modular, secure, and user-friendly web application named:
 
 Personal AI Library Manager
 
+==============================
+CURRENT IMPLEMENTATION UPDATE
+==============================
+
+The following functionality is implemented in the current application and takes precedence over earlier planning language in this document.
+
+- Multi-library support is available. A signed-in user works within an active library, can save a default library preference, and sees library-scoped books, dashboard metrics, reports, lending activity, and edit-book choices.
+- Library membership roles are Owner, Admin, and Member. Global administrators retain cross-library administrative access; library-level navigation and management follow the active membership role.
+- The Dashboard is an active-library home workspace with collection and lending KPIs, quick actions, recent activity, and optional collection insights. Its default charts are Books by category, Borrowing activity, and Loan health.
+- Book workflows include a compact shared Add/Edit form, duplicate-title detection within the active library, a visual catalogue with card/table/bookshelf/reading-board views, bulk actions, details, scoped filters, and safe cover-image handling.
+- Search supports normal and fuzzy matching, saved and recent searches, active-library filters, multiple result views, and empty-result safeguards.
+- Tags support color and description metadata. Tags and collections have a dedicated management experience and remain reusable across book records.
+- Wishlist supports Planned, Ordered, Purchased, and Cancelled states, filtering, priority handling, CSV/Excel exports, and conversion to a book in the active library.
+- Lending Desk supports quick lending, active/overdue/returned boards, borrower history derived from loans, returns, due-date extensions with a persistent audit history, CSV/Excel export, and optional analytics. A book cannot be lent while it has an active loan.
+- Gmail return reminders are available when a borrower contact contains an email address and `GMAIL_ADDRESS` plus `GMAIL_APP_PASSWORD` are configured locally. Gmail SMTP access can be blocked by corporate networks even when browser-based Gmail works.
+- Reports provide a report builder, KPI overview, optional insights, category-specific Book, Member, Loan, Analytics, Library, Wishlist, and Financial reports, active-library data scoping, filtering, and CSV/Excel exports.
+- The About page identifies the application developer as Venkatesh Kumar HC, AI Engineer at Telstra India Ltd, with a mail contact link.
+- The SQLite schema includes library relationships, a user default-library preference, tag metadata, and a `loan_extensions` audit table. Additive SQLite migrations preserve existing local data.
+- Current automated coverage is 19 passing pytest tests. The AI assistant, OCR, external-book metadata, true persisted borrower profiles, SMS/WhatsApp delivery, PDF export, reminder audit logs, and calendar scheduling remain future enhancements.
+
 The application must allow a user to maintain a personal book collection, search books, edit records, delete records, generate reports, track lent books, manage wishlists, upload book covers, and use optional AI-powered features.
 
 ==============================

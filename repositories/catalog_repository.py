@@ -30,8 +30,8 @@ class CatalogRepository:
             else []
         )
 
-    def add_tag(self, name: str) -> Tag:
-        tag = Tag(name=name)
+    def add_tag(self, name: str, color: str = "#1C8A83", description: str | None = None) -> Tag:
+        tag = Tag(name=name, color=color, description=description)
         self.session.add(tag)
         self.session.commit()
         self.session.refresh(tag)

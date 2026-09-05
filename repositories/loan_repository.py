@@ -7,7 +7,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from models import Loan
+from models import Book, Loan, LoanExtension
 
 
 class LoanRepository:
@@ -25,8 +25,10 @@ class LoanRepository:
     def get(self, loan_id: int) -> Loan | None:
         return self.session.get(Loan, loan_id)
 
-    def list(self) -> list[Loan]:
+    def list(self, library_id: int | None = None) -> list[Loan]:
         statement = select(Loan).options(selectinload(Loan.book)).order_by(Loan.borrowed_date.desc())
+        if library_id is not None:
+            statement = statement.join(Loan.book).where(Book.library_id == library_id)
         return list(self.session.scalars(statement))
 
     def active_for_book(self, book_id: int) -> Loan | None:
@@ -37,3 +39,9 @@ class LoanRepository:
         self.session.commit()
         self.session.refresh(loan)
         return loan
+
+    def add_extension(self, extension: LoanExtension) -> LoanExtension:
+        self.session.add(extension)
+        self.session.commit()
+        self.session.refresh(extension)
+        return extension
